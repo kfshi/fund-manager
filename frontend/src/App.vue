@@ -149,27 +149,71 @@ onMounted(() => { checkLogin(); });
 
 <template>
   <div class="app-wrapper">
-    <div v-if="!isLoggedIn" class="login-page">
-      <div class="login-header">
-        <div class="logo-box pulse-anim"><van-icon name="chart-trending-o" /></div>
-        <h1 class="app-name">Fund Manager</h1>
-      </div>
-      <div class="login-body">
-        <div class="form-title">{{ authMode === 'login' ? '账号登录' : '注册新账号' }}</div>
-        <div class="input-group">
-          <van-field v-model="authForm.email" placeholder="邮箱" left-icon="manager" class="custom-input" />
-          <van-field v-model="authForm.password" type="password" placeholder="密码" left-icon="lock" class="custom-input" />
-          <van-field v-if="authMode === 'register'" v-model="authForm.confirmPassword" type="password" placeholder="确认密码" left-icon="lock" class="custom-input" />
-        </div>
-        <van-button block round type="primary" color="linear-gradient(to right, #3b8eff, #1677ff)" @click="handleAuth">
-          {{ authMode === 'login' ? '立即登录' : '立即注册' }}
-        </van-button>
-        <div class="switch-link" @click="switchAuthMode">
-          <span>{{ authMode === 'login' ? '没有账号？' : '已有账号？' }}</span><span class="highlight">{{ authMode === 'login' ? '去注册' : '去登录' }}</span>
-        </div>
-      </div>
-    </div>
+    <div v-if="!isLoggedIn" class="login-page-new">
+      <div class="login-bg-circle c1"></div>
+      <div class="login-bg-circle c2"></div>
 
+      <div class="login-container-new bounce-in-down">
+        <div class="login-header-new">
+          <div class="logo-box-new pulse-anim">
+            <van-icon name="chart-trending-o" size="32" color="#fff" />
+          </div>
+          <h1 class="app-name-new">Fund Manager</h1>
+          <p class="app-slogan">您的贴身基金管家</p>
+        </div>
+
+        <div class="login-card glass-effect">
+          <div class="card-title">
+            {{ authMode === 'login' ? '欢迎回来' : '创建新账号' }}
+          </div>
+          
+          <div class="input-group-new">
+            <van-field 
+              v-model="authForm.email" 
+              placeholder="请输入邮箱" 
+              left-icon="manager-o" 
+              class="modern-input"
+              :border="false"
+            />
+            <van-field 
+              v-model="authForm.password" 
+              type="password" 
+              placeholder="请输入密码" 
+              left-icon="lock-o" 
+              class="modern-input"
+              :border="false"
+            />
+            <van-field 
+              v-if="authMode === 'register'" 
+              v-model="authForm.confirmPassword" 
+              type="password" 
+              placeholder="请确认密码" 
+              left-icon="lock-o" 
+              class="modern-input"
+              :border="false"
+            />
+          </div>
+
+          <van-button 
+            block 
+            round 
+            type="primary" 
+            color="linear-gradient(135deg, #3b8eff, #1677ff)" 
+            class="login-btn-new shadow-btn"
+            :loading="authLoading"
+            @click="handleAuth"
+          >
+            {{ authMode === 'login' ? '安全登录' : '立即注册' }}
+          </van-button>
+          
+          <div class="switch-link-new" @click="switchAuthMode">
+            <span>{{ authMode === 'login' ? '还没有账号？' : '已经有账号了？' }}</span>
+            <span class="highlight-new">{{ authMode === 'login' ? '免费注册' : '直接登录' }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="login-footer">© 2024 Fund Manager. All Rights Reserved.</div>
+    </div>
     <div v-else class="main-page">
       
       <div class="header-bg">
@@ -349,9 +393,84 @@ onMounted(() => { checkLogin(); });
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 :root { --ant-blue: #1677ff; --bg-gray: #f5f5f5; }
-.app-wrapper { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--bg-gray); min-height: 100vh; }
+.app-wrapper { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-gray); min-height: 100vh; }
 
-/* --- 头部样式优化 --- */
+/* ================= 新版登录页样式 ================= */
+.login-page-new {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); /* 更深邃的蓝 */
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 20px; box-sizing: border-box; overflow: hidden;
+  z-index: 1000; color: #fff;
+}
+
+/* 背景装饰圆圈 */
+.login-bg-circle { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.05); pointer-events: none; }
+.c1 { width: 300px; height: 300px; top: -50px; right: -50px; }
+.c2 { width: 200px; height: 200px; bottom: 50px; left: -50px; }
+
+.login-container-new { width: 100%; max-width: 400px; z-index: 10; }
+
+.login-header-new { text-align: center; margin-bottom: 30px; }
+.logo-box-new { 
+  width: 60px; height: 60px; background: linear-gradient(135deg, #3b8eff, #1677ff); 
+  border-radius: 16px; display: flex; align-items: center; justify-content: center; 
+  margin: 0 auto 15px; box-shadow: 0 8px 20px rgba(22, 119, 255, 0.3);
+}
+.app-name-new { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: 1px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.app-slogan { font-size: 14px; opacity: 0.8; margin-top: 8px; font-weight: 300; }
+
+/* 玻璃拟态卡片 */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 30px 25px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #333;
+}
+
+.card-title { font-size: 20px; font-weight: bold; margin-bottom: 25px; text-align: center; color: #1e3c72; }
+
+/* 现代感输入框 (核心亮点) */
+.input-group-new { margin-bottom: 25px; }
+.modern-input {
+  background: transparent !important;
+  padding: 12px 0 !important;
+  border-bottom: 1px solid #eee !important;
+  border-radius: 0 !important;
+  transition: all 0.3s ease;
+}
+/* 深度选择器修改 Vant 内部样式 */
+:deep(.modern-input .van-field__control) { font-size: 16px; }
+:deep(.modern-input .van-field__left-icon) { margin-right: 12px; color: #999; transition: color 0.3s; }
+/* 输入框聚焦态 */
+:deep(.modern-input:focus-within) { border-bottom-color: #1677ff !important; }
+:deep(.modern-input:focus-within .van-field__left-icon) { color: #1677ff; }
+
+.login-btn-new { height: 48px; font-size: 16px; font-weight: bold; letter-spacing: 1px; border: none; }
+.shadow-btn { box-shadow: 0 8px 20px rgba(22, 119, 255, 0.3); transition: transform 0.2s; }
+.shadow-btn:active { transform: scale(0.98); box-shadow: 0 4px 10px rgba(22, 119, 255, 0.3); }
+
+.switch-link-new { text-align: center; margin-top: 20px; font-size: 14px; color: #666; cursor: pointer; }
+.highlight-new { color: #1677ff; font-weight: bold; margin-left: 5px; position: relative; }
+.highlight-new::after { content: ''; position: absolute; width: 100%; height: 2px; bottom: -2px; left: 0; background: #1677ff; transform: scaleX(0); transition: transform 0.3s; }
+.switch-link-new:hover .highlight-new::after { transform: scaleX(1); }
+
+.login-footer { position: fixed; bottom: 20px; left: 0; width: 100%; text-align: center; font-size: 12px; opacity: 0.5; }
+
+/* 入场动画 */
+.bounce-in-down { animation: bounceInDown 0.8s ease-out; }
+@keyframes bounceInDown {
+  0% { opacity: 0; transform: translateY(-50px); }
+  60% { opacity: 1; transform: translateY(10px); }
+  100% { transform: translateY(0); }
+}
+/* ================= 新版登录页样式结束 ================= */
+
+
+/* --- 头部样式优化 (主界面) --- */
 .header-bg { 
   height: 170px; 
   background: radial-gradient(circle at 90% 10%, #4facfe 0%, #1677ff 80%); 
@@ -440,48 +559,19 @@ onMounted(() => { checkLogin(); });
 .green-text { color: #1ba261; }
 
 /* 悬浮按钮 + 呼吸动画 */
-.fab-btn { 
-  position: fixed; 
-  bottom: 40px; 
-  right: 20px; 
-  width: 50px; 
-  height: 50px; 
-  background: #1677ff; 
-  color: #fff; 
-  border-radius: 50%; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  font-size: 24px; 
-  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4); 
-  z-index: 99; 
-}
+.fab-btn { position: fixed; bottom: 40px; right: 20px; width: 50px; height: 50px; background: #1677ff; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4); z-index: 99; }
 
 .pulse-shadow {
   animation: pulse-blue 2s infinite;
 }
 
 @keyframes pulse-blue {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.7);
-  }
-  70% {
-    transform: scale(1.05); /*稍微放大一点，效果更明显*/
-    box-shadow: 0 0 0 10px rgba(22, 119, 255, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(22, 119, 255, 0);
-  }
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(22, 119, 255, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0); }
 }
 
 .form-box { padding: 20px 0; }
-.login-page { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: linear-gradient(135deg, #1677ff 0%, #0056b3 100%); display: flex; flex-direction: column; justify-content: flex-end; z-index: 1000; }
-.login-header { position: absolute; top: 15%; width: 100%; text-align: center; color: #fff; }
-.login-body { background: #fff; border-top-left-radius: 30px; border-top-right-radius: 30px; padding: 40px 30px; }
-.input-group { margin-bottom: 30px; }
-.custom-input { background: #f5f7fa; border-radius: 12px; margin-bottom: 16px; }
 
 /* 榜单弹窗样式 */
 .rank-popup-content { padding: 20px 0; height: 100%; display: flex; flex-direction: column; }
@@ -491,7 +581,7 @@ onMounted(() => { checkLogin(); });
 .rank-idx { width: 40px; text-align: center; font-weight: bold; font-style: italic; color: #999; display: flex; justify-content: center; }
 .rank-num { font-size: 18px; font-family: 'Roboto', sans-serif; }
 .rank-user-info { flex: 1; margin-left: 10px; }
-.u-name { font-size: 15px; font-weight: 500; color: #FFF; }
+.u-name { font-size: 15px; font-weight: 500; color: #333; }
 .u-mail { font-size: 12px; color: #999; }
 .rank-money { font-size: 16px; font-weight: bold; font-family: 'Roboto', sans-serif; }
 .empty-tip { text-align: center; color: #999; padding: 20px; font-size: 13px; }
