@@ -4,6 +4,7 @@ import axios from 'axios';
 import { showToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant';
 import CountUp from 'vue-countup-v3';
 
+// ⚠️ 生产环境自动使用环境变量，本地开发使用 3000
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000/api';
 
 // --- 状态变量 ---
@@ -319,17 +320,20 @@ onMounted(() => { checkLogin(); });
           <div class="rank-list-box">
              <van-loading v-if="rankLoading" size="24px" vertical style="padding: 20px;">加载中...</van-loading>
              <div v-else-if="rankList.length === 0" class="empty-tip">暂无数据</div>
+             
              <div v-else class="rank-user-row" v-for="(user, idx) in rankList" :key="idx">
                <div class="rank-idx">
-                 <img v-if="idx === 0" src="https://img.icons8.com/color/48/000000/gold-medal.png" width="30"/>
-                 <img v-else-if="idx === 1" src="https://img.icons8.com/color/48/000000/silver-medal.png" width="30"/>
-                 <img v-else-if="idx === 2" src="https://img.icons8.com/color/48/000000/bronze-medal.png" width="30"/>
+                 <van-icon v-if="idx === 0" name="medal" color="#FFD700" size="30" />
+                 <van-icon v-else-if="idx === 1" name="medal" color="#C0C0C0" size="30" />
+                 <van-icon v-else-if="idx === 2" name="medal" color="#B87333" size="30" />
                  <span v-else class="rank-num">{{ idx + 1 }}</span>
                </div>
+               
                <div class="rank-user-info">
                  <div class="u-name">{{ user.nickname || '神秘用户' }}</div>
                  <div class="u-mail">{{ user.email }}</div>
                </div>
+               
                <div class="rank-money" :class="(rankType === 'day' ? user.day_profit : user.total_profit) >= 0 ? 'red-text' : 'green-text'">
                  {{ formatNum(rankType === 'day' ? user.day_profit : user.total_profit) }}
                </div>
@@ -397,11 +401,11 @@ onMounted(() => { checkLogin(); });
 .date-row { display: flex; align-items: center; gap: 10px; font-size: 12px; opacity: 0.85; }
 .update-tag { background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 4px; font-size: 10px; }
 
-/* 3. 插画 (关键修改：下沉 top: 60px，不再遮挡顶部按钮) */
+/* 3. 插画 (下沉不挡字) */
 .header-illustration { position: absolute; right: -10px; top: 60px; width: 140px; height: 120px; opacity: 0.8; z-index: 1; pointer-events: none; }
 .float-card { position: absolute; background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.05) 100%); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 12px; backdrop-filter: blur(2px); box-shadow: 0 8px 16px rgba(0,0,0,0.05); }
 
-/* 微调卡片位置，让它看起来像底部的装饰 */
+/* 微调卡片位置 */
 .card-1 { width: 70px; height: 50px; top: 30px; right: 30px; transform: rotate(-10deg); animation: float 6s infinite ease-in-out; }
 .card-2 { width: 50px; height: 50px; top: 60px; right: 70px; transform: rotate(15deg); background: rgba(255,255,255,0.15); animation: float 7s infinite 0.5s ease-in-out; }
 .float-arrow { position: absolute; top: 20px; right: 60px; font-size: 48px; color: #fff; opacity: 0.9; transform: rotate(-10deg); filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); animation: float 4s infinite ease-in-out; }
@@ -434,7 +438,20 @@ onMounted(() => { checkLogin(); });
 .val-num, .rate-num { font-weight: bold; font-family: 'Roboto'; }
 .red-text { color: #e74c3c; }
 .green-text { color: #1ba261; }
+
+/* 悬浮按钮 + 呼吸动画 */
 .fab-btn { position: fixed; bottom: 40px; right: 20px; width: 50px; height: 50px; background: #1677ff; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4); z-index: 99; }
+
+.pulse-shadow {
+  animation: pulse-blue 2s infinite;
+}
+
+@keyframes pulse-blue {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(22, 119, 255, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0); }
+}
+
 .form-box { padding: 20px 0; }
 .login-page { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: linear-gradient(135deg, #1677ff 0%, #0056b3 100%); display: flex; flex-direction: column; justify-content: flex-end; z-index: 1000; }
 .login-header { position: absolute; top: 15%; width: 100%; text-align: center; color: #fff; }
@@ -447,10 +464,10 @@ onMounted(() => { checkLogin(); });
 .popup-title { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
 .rank-list-box { flex: 1; overflow-y: auto; padding: 10px 20px; }
 .rank-user-row { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f5f5f5; }
-.rank-idx { width: 40px; text-align: center; font-weight: bold; font-style: italic; color: #999; }
+.rank-idx { width: 40px; text-align: center; font-weight: bold; font-style: italic; color: #999; display: flex; justify-content: center; }
 .rank-num { font-size: 18px; font-family: 'Roboto', sans-serif; }
 .rank-user-info { flex: 1; margin-left: 10px; }
-.u-name { font-size: 15px; font-weight: 500; color: #FFF; }
+.u-name { font-size: 15px; font-weight: 500; color: #333; }
 .u-mail { font-size: 12px; color: #999; }
 .rank-money { font-size: 16px; font-weight: bold; font-family: 'Roboto', sans-serif; }
 .empty-tip { text-align: center; color: #999; padding: 20px; font-size: 13px; }
