@@ -33,12 +33,28 @@ const rankList = ref([]);
 const rankType = ref('day'); // 'day' or 'total'
 const rankLoading = ref(false);
 
-// --- 工具函数：格式化数字 (解决 +- 显示问题) ---
+// --- 工具函数 ---
 const formatNum = (num) => {
   const n = parseFloat(num);
   if (isNaN(n)) return '0.00';
   return n > 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
 };
+
+// --- 认证拦截器 (新增：自动处理 Token 失效) ---
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      showFailToast('登录身份失效，请重新登录');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user_email');
+      isLoggedIn.value = false;
+      currentUser.value = '';
+      list.value = [];
+    }
+    return Promise.reject(error);
+  }
+);
 
 // --- 认证相关逻辑 ---
 const checkLogin = () => {
@@ -92,10 +108,12 @@ const getList = async () => {
       list.value = res.data.data;
       listAnimationKey.value++; 
     }
-  } catch (error) { showFailToast('获取数据失败'); } finally { loading.value = false; }
+  } catch (error) { 
+    // 拦截器会处理 403，这里只需处理网络错误
+    console.error(error);
+  } finally { loading.value = false; }
 };
 
-// 获取排行榜
 const getLeaderboard = async () => {
   rankLoading.value = true;
   try {
@@ -162,44 +180,16 @@ onMounted(() => { checkLogin(); });
           <p class="app-slogan">您的贴身基金管家</p>
         </div>
 
-        <div class="input-group-new">
-            <van-field 
-              v-model="authForm.email" 
-              placeholder="请输入邮箱" 
-              left-icon="manager-o" 
-              class="modern-input"
-              :border="false"
-            />
-            
-            <van-field 
-              v-model="authForm.password" 
-              type="password" 
-              placeholder="请输入密码" 
-              left-icon="lock-o"
-              class="modern-input"
-              :border="false"
-            />
-            
-            <van-field 
-              v-if="authMode === 'register'" 
-              v-model="authForm.confirmPassword" 
-              type="password" 
-              placeholder="请确认密码" 
-              left-icon="lock-o"
-              class="modern-input"
-              :border="false"
-            />
+        <div class="login-card glass-effect">
+          <div class="card-title">{{ authMode === 'login' ? '欢迎回来' : '创建新账号' }}</div>
+          
+          <div class="input-group-new">
+            <van-field v-model="authForm.email" placeholder="请输入邮箱" left-icon="manager-o" class="modern-input" :border="false" />
+            <van-field v-model="authForm.password" type="password" placeholder="请输入密码" left-icon="lock-o" class="modern-input" :border="false" />
+            <van-field v-if="authMode === 'register'" v-model="authForm.confirmPassword" type="password" placeholder="请确认密码" left-icon="lock-o" class="modern-input" :border="false" />
           </div>
 
-          <van-button 
-            block 
-            round 
-            type="primary" 
-            color="linear-gradient(135deg, #3b8eff, #1677ff)" 
-            class="login-btn-new shadow-btn"
-            :loading="authLoading"
-            @click="handleAuth"
-          >
+          <van-button block round type="primary" color="linear-gradient(135deg, #3b8eff, #1677ff)" class="login-btn-new shadow-btn" :loading="authLoading" @click="handleAuth">
             {{ authMode === 'login' ? '安全登录' : '立即注册' }}
           </van-button>
           
@@ -209,18 +199,17 @@ onMounted(() => { checkLogin(); });
           </div>
         </div>
       </div>
-      <div class="login-footer">© 2026 Fund Manager. All Rights Reserved.</div>
+      <div class="login-footer">© 2024 Fund Manager. All Rights Reserved.</div>
     </div>
+
     <div v-else class="main-page">
-      
       <div class="header-bg">
         <div class="top-bar">
           <div class="user-chip" @click="handleLogout">
              <van-icon name="manager" class="u-icon" />
              <span class="u-name">{{ currentUser.split('@')[0] }}</span>
-             <van-icon name="arrow-down" size="10" style="opacity: 0.6;" />
+             <van-icon name="arrow-down" size="10" style="opacity: 0.8;" />
           </div>
-          
           <div class="rank-chip" @click="showRankPopup = true">
              <van-icon name="medal-o" size="16" />
              <span>榜单</span>
@@ -228,13 +217,8 @@ onMounted(() => { checkLogin(); });
         </div>
 
         <div class="header-title-area">
-          <div class="title-row">
-            <span class="page-title">收益解读</span>
-          </div>
-          <div class="date-row">
-            <span class="page-date">2月5日 周三</span>
-            <span class="update-tag">数据已更新</span>
-          </div>
+          <div class="title-row"><span class="page-title">收益解读</span></div>
+          <div class="date-row"><span class="page-date">2月5日 周三</span><span class="update-tag">数据已更新</span></div>
         </div>
         
         <div class="header-illustration">
@@ -273,48 +257,17 @@ onMounted(() => { checkLogin(); });
           <div v-if="analysisTab === 0 && topGainer" class="rank-card" @click="onCardClick(topGainer)">
              <div class="rank-head"><span class="rank-name">{{ topGainer.name }}</span><span class="rank-tag">MVP</span></div>
              <div class="rank-data-row">
-               <div class="r-item">
-                 <div class="r-val" :class="parseFloat(topGainer.market?.est_rate) >= 0 ? 'red-text' : 'green-text'">
-                   {{ formatNum(topGainer.market?.est_rate) }}%
-                 </div>
-                 <div class="r-lbl">今日涨幅</div>
-               </div>
-               <div class="r-item center">
-                 <div class="r-val" :class="parseFloat(topGainer.day_profit) >= 0 ? 'red-text' : 'green-text'">
-                   {{ formatNum(topGainer.day_profit) }}
-                 </div>
-                 <div class="r-lbl">今日盈利</div>
-               </div>
-               <div class="r-item right">
-                  <div class="r-val" :class="parseFloat(topGainer.profit) >= 0 ? 'red-text' : 'green-text'">
-                    {{ formatNum(topGainer.profit) }}
-                  </div>
-                  <div class="r-lbl">累计收益</div>
-               </div>
+               <div class="r-item"><div class="r-val" :class="parseFloat(topGainer.market?.est_rate) >= 0 ? 'red-text' : 'green-text'">{{ formatNum(topGainer.market?.est_rate) }}%</div><div class="r-lbl">今日涨幅</div></div>
+               <div class="r-item center"><div class="r-val" :class="parseFloat(topGainer.day_profit) >= 0 ? 'red-text' : 'green-text'">{{ formatNum(topGainer.day_profit) }}</div><div class="r-lbl">今日盈利</div></div>
+               <div class="r-item right"><div class="r-val" :class="parseFloat(topGainer.profit) >= 0 ? 'red-text' : 'green-text'">{{ formatNum(topGainer.profit) }}</div><div class="r-lbl">累计收益</div></div>
              </div>
           </div>
-
           <div v-if="analysisTab === 1 && topLoser" class="rank-card" @click="onCardClick(topLoser)">
              <div class="rank-head"><span class="rank-name">{{ topLoser.name }}</span><span class="rank-tag gray">安慰</span></div>
              <div class="rank-data-row">
-               <div class="r-item">
-                 <div class="r-val" :class="parseFloat(topLoser.market?.est_rate) >= 0 ? 'red-text' : 'green-text'">
-                   {{ formatNum(topLoser.market?.est_rate) }}%
-                 </div>
-                 <div class="r-lbl">今日跌幅</div>
-               </div>
-               <div class="r-item center">
-                 <div class="r-val" :class="parseFloat(topLoser.day_profit) >= 0 ? 'red-text' : 'green-text'">
-                   {{ formatNum(topLoser.day_profit) }}
-                 </div>
-                 <div class="r-lbl">今日亏损</div>
-               </div>
-               <div class="r-item right">
-                  <div class="r-val" :class="parseFloat(topLoser.profit) >= 0 ? 'red-text' : 'green-text'">
-                    {{ formatNum(topLoser.profit) }}
-                  </div>
-                  <div class="r-lbl">累计收益</div>
-               </div>
+               <div class="r-item"><div class="r-val" :class="parseFloat(topLoser.market?.est_rate) >= 0 ? 'red-text' : 'green-text'">{{ formatNum(topLoser.market?.est_rate) }}%</div><div class="r-lbl">今日跌幅</div></div>
+               <div class="r-item center"><div class="r-val" :class="parseFloat(topLoser.day_profit) >= 0 ? 'red-text' : 'green-text'">{{ formatNum(topLoser.day_profit) }}</div><div class="r-lbl">今日亏损</div></div>
+               <div class="r-item right"><div class="r-val" :class="parseFloat(topLoser.profit) >= 0 ? 'red-text' : 'green-text'">{{ formatNum(topLoser.profit) }}</div><div class="r-lbl">累计收益</div></div>
              </div>
           </div>
           <div v-if="list.length === 0" class="empty-tip">暂无数据</div>
@@ -328,12 +281,8 @@ onMounted(() => { checkLogin(); });
             <div class="row-left"><div class="fname">{{ item.name }}</div><div class="fcode">{{ item.code }}</div></div>
             <div class="row-mid"><div class="val-num">{{ item.market ? item.market.est_val : item.cost }}</div><div class="val-label">最新净值</div></div>
             <div class="row-right">
-              <div class="rate-num" :class="item.market?.est_rate >= 0 ? 'red-text' : 'green-text'">
-                {{ formatNum(item.market?.est_rate) }}%
-              </div>
-              <div class="profit-mini" :class="item.profit >= 0 ? 'red-text' : 'green-text'">
-                {{ showMoney ? formatNum(item.profit) : '****' }}
-              </div>
+              <div class="rate-num" :class="item.market?.est_rate >= 0 ? 'red-text' : 'green-text'">{{ formatNum(item.market?.est_rate) }}%</div>
+              <div class="profit-mini" :class="item.profit >= 0 ? 'red-text' : 'green-text'">{{ showMoney ? formatNum(item.profit) : '****' }}</div>
             </div>
           </div>
         </div>
@@ -357,11 +306,9 @@ onMounted(() => { checkLogin(); });
             <van-tab title="今日榜单" name="day"></van-tab>
             <van-tab title="总收益榜" name="total"></van-tab>
           </van-tabs>
-
           <div class="rank-list-box">
              <van-loading v-if="rankLoading" size="24px" vertical style="padding: 20px;">加载中...</van-loading>
              <div v-else-if="rankList.length === 0" class="empty-tip">暂无数据</div>
-             
              <div v-else class="rank-user-row" v-for="(user, idx) in rankList" :key="idx">
                <div class="rank-idx">
                  <span v-if="idx === 0" style="font-size: 30px;">🥇</span>
@@ -369,12 +316,10 @@ onMounted(() => { checkLogin(); });
                  <span v-else-if="idx === 2" style="font-size: 30px;">🥉</span>
                  <span v-else class="rank-num">{{ idx + 1 }}</span>
                </div>
-               
                <div class="rank-user-info">
-                 <div class="u-name">{{ user.nickname || '神秘用户' }}</div>
+                 <div class="u-name-dark">{{ user.nickname || '神秘用户' }}</div>
                  <div class="u-mail">{{ user.email }}</div>
                </div>
-               
                <div class="rank-money" :class="(rankType === 'day' ? user.day_profit : user.total_profit) >= 0 ? 'red-text' : 'green-text'">
                  {{ formatNum(rankType === 'day' ? user.day_profit : user.total_profit) }}
                </div>
@@ -382,7 +327,6 @@ onMounted(() => { checkLogin(); });
           </div>
         </div>
       </van-popup>
-
     </div>
   </div>
 </template>
@@ -390,150 +334,62 @@ onMounted(() => { checkLogin(); });
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 :root { --ant-blue: #1677ff; --bg-gray: #f5f5f5; }
-.app-wrapper { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-gray); min-height: 100vh; }
+.app-wrapper { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--bg-gray); min-height: 100vh; }
 
-/* ================= 新版登录页样式 ================= */
-.login-page-new {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); /* 更深邃的蓝 */
-  display: flex; flex-direction: column; justify-content: center; align-items: center;
-  padding: 20px; box-sizing: border-box; overflow: hidden;
-  z-index: 1000; color: #fff;
-}
-
-/* 背景装饰圆圈 */
+/* 登录页样式 */
+.login-page-new { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; overflow: hidden; z-index: 1000; color: #fff; }
 .login-bg-circle { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.05); pointer-events: none; }
 .c1 { width: 300px; height: 300px; top: -50px; right: -50px; }
 .c2 { width: 200px; height: 200px; bottom: 50px; left: -50px; }
-
 .login-container-new { width: 100%; max-width: 400px; z-index: 10; }
-
 .login-header-new { text-align: center; margin-bottom: 30px; }
-.logo-box-new { 
-  width: 60px; height: 60px; background: linear-gradient(135deg, #3b8eff, #1677ff); 
-  border-radius: 16px; display: flex; align-items: center; justify-content: center; 
-  margin: 0 auto 15px; box-shadow: 0 8px 20px rgba(22, 119, 255, 0.3);
-}
+.logo-box-new { width: 60px; height: 60px; background: linear-gradient(135deg, #3b8eff, #1677ff); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; box-shadow: 0 8px 20px rgba(22, 119, 255, 0.3); }
 .app-name-new { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: 1px; text-shadow: 0 2px 10px rgba(0,0,0,0.2); }
 .app-slogan { font-size: 14px; opacity: 0.8; margin-top: 8px; font-weight: 300; }
-
-/* 玻璃拟态卡片 */
-.glass-effect {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 24px;
-  padding: 30px 25px;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #333;
-}
-
+.glass-effect { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 24px; padding: 30px 25px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); color: #333; }
 .card-title { font-size: 20px; font-weight: bold; margin-bottom: 25px; text-align: center; color: #1e3c72; }
-
-/* 现代感输入框 (核心亮点) */
 .input-group-new { margin-bottom: 25px; }
-.modern-input {
-  background: transparent !important;
-  padding: 12px 0 !important;
-  border-bottom: 1px solid #eee !important;
-  border-radius: 0 !important;
-  transition: all 0.3s ease;
-}
-/* 深度选择器修改 Vant 内部样式 */
+.modern-input { background: transparent !important; padding: 12px 0 !important; border-bottom: 1px solid #eee !important; border-radius: 0 !important; transition: all 0.3s ease; }
 :deep(.modern-input .van-field__control) { font-size: 16px; }
 :deep(.modern-input .van-field__left-icon) { margin-right: 12px; color: #999; transition: color 0.3s; }
-/* 输入框聚焦态 */
 :deep(.modern-input:focus-within) { border-bottom-color: #1677ff !important; }
 :deep(.modern-input:focus-within .van-field__left-icon) { color: #1677ff; }
-
 .login-btn-new { height: 48px; font-size: 16px; font-weight: bold; letter-spacing: 1px; border: none; }
 .shadow-btn { box-shadow: 0 8px 20px rgba(22, 119, 255, 0.3); transition: transform 0.2s; }
 .shadow-btn:active { transform: scale(0.98); box-shadow: 0 4px 10px rgba(22, 119, 255, 0.3); }
-
 .switch-link-new { text-align: center; margin-top: 20px; font-size: 14px; color: #666; cursor: pointer; }
 .highlight-new { color: #1677ff; font-weight: bold; margin-left: 5px; position: relative; }
 .highlight-new::after { content: ''; position: absolute; width: 100%; height: 2px; bottom: -2px; left: 0; background: #1677ff; transform: scaleX(0); transition: transform 0.3s; }
 .switch-link-new:hover .highlight-new::after { transform: scaleX(1); }
-
 .login-footer { position: fixed; bottom: 20px; left: 0; width: 100%; text-align: center; font-size: 12px; opacity: 0.5; }
-
-/* 入场动画 */
 .bounce-in-down { animation: bounceInDown 0.8s ease-out; }
-@keyframes bounceInDown {
-  0% { opacity: 0; transform: translateY(-50px); }
-  60% { opacity: 1; transform: translateY(10px); }
-  100% { transform: translateY(0); }
-}
-/* ================= 新版登录页样式结束 ================= */
+@keyframes bounceInDown { 0% { opacity: 0; transform: translateY(-50px); } 60% { opacity: 1; transform: translateY(10px); } 100% { transform: translateY(0); } }
 
-
-/* --- 头部样式优化 (主界面) --- */
-.header-bg { 
-  height: 170px; 
-  background: radial-gradient(circle at 90% 10%, #4facfe 0%, #1677ff 80%); 
-  padding: 16px 20px; 
-  color: #fff; 
-  position: relative; 
-  overflow: hidden; 
-  border-bottom-left-radius: 24px;
-  border-bottom-right-radius: 24px;
-}
-
-/* 1. 顶部工具栏 */
+/* 主界面样式 */
+.header-bg { height: 170px; background: radial-gradient(circle at 90% 10%, #4facfe 0%, #1677ff 80%); padding: 16px 20px; color: #fff; position: relative; overflow: hidden; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
 .top-bar { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 10; margin-bottom: 25px; }
-
-/* 用户胶囊按钮 */
-.user-chip { 
-  background: rgba(255,255,255,0.15); 
-  border: 1px solid rgba(255,255,255,0.2); 
-  backdrop-filter: blur(4px); 
-  padding: 6px 10px 6px 8px; 
-  border-radius: 100px; 
-  font-size: 13px; font-weight: 500; 
-  display: flex; align-items: center; gap: 6px; 
-  cursor: pointer; transition: all 0.2s;
-}
+.user-chip { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px); padding: 6px 10px 6px 8px; border-radius: 100px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; }
 .user-chip:active { background: rgba(255,255,255,0.3); transform: scale(0.98); }
 .u-icon { background: #fff; color: #1677ff; border-radius: 50%; padding: 2px; font-size: 12px; }
-.u-name { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* 榜单胶囊按钮 */
-.rank-chip { 
-  background: rgba(255,255,255,0.15); 
-  border: 1px solid rgba(255,255,255,0.2);
-  backdrop-filter: blur(4px); 
-  padding: 6px 14px; 
-  border-radius: 100px; 
-  font-size: 13px; font-weight: bold; 
-  display: flex; align-items: center; gap: 4px; 
-  cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
+.u-name { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; /* 强制白色 */ }
+.rank-chip { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(4px); padding: 6px 14px; border-radius: 100px; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 4px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 .rank-chip:active { transform: scale(0.95); background: rgba(255,255,255,0.3); }
-
-/* 2. 标题区域 */
 .header-title-area { position: relative; z-index: 5; padding-left: 4px; }
 .title-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
 .page-title { font-size: 26px; font-weight: 700; letter-spacing: 1px; text-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 .date-row { display: flex; align-items: center; gap: 10px; font-size: 12px; opacity: 0.85; }
 .update-tag { background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 4px; font-size: 10px; }
-
-/* 3. 插画 (下沉不挡字) */
 .header-illustration { position: absolute; right: -10px; top: 60px; width: 140px; height: 120px; opacity: 0.8; z-index: 1; pointer-events: none; }
 .float-card { position: absolute; background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.05) 100%); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 12px; backdrop-filter: blur(2px); box-shadow: 0 8px 16px rgba(0,0,0,0.05); }
-
-/* 微调卡片位置 */
 .card-1 { width: 70px; height: 50px; top: 30px; right: 30px; transform: rotate(-10deg); animation: float 6s infinite ease-in-out; }
 .card-2 { width: 50px; height: 50px; top: 60px; right: 70px; transform: rotate(15deg); background: rgba(255,255,255,0.15); animation: float 7s infinite 0.5s ease-in-out; }
 .float-arrow { position: absolute; top: 20px; right: 60px; font-size: 48px; color: #fff; opacity: 0.9; transform: rotate(-10deg); filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1)); animation: float 4s infinite ease-in-out; }
-
-/* 通用部分 */
 .analysis-card { background: #fff; margin: -50px 16px 16px 16px; border-radius: 16px; padding: 24px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); position: relative; z-index: 10; }
 .card-top { margin-bottom: 24px; }
 .card-label { color: #666; font-size: 14px; display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
 .big-money { font-size: 36px; font-weight: bold; font-family: 'Roboto', sans-serif; }
 .money-rate { font-size: 14px; font-weight: normal; opacity: 0.8; margin-left: 4px; }
 .bar-label { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-bottom: 6px; }
-
 .rank-section { margin: 0 16px 20px 16px; }
 .rank-tabs { display: flex; gap: 16px; margin-bottom: 12px; }
 .rank-tab { background: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; color: #666; cursor: pointer; }
@@ -545,7 +401,6 @@ onMounted(() => { checkLogin(); });
 .rank-data-row { display: flex; justify-content: space-between; }
 .r-val { font-size: 18px; font-weight: bold; margin-bottom: 4px; font-family: 'Roboto'; }
 .r-lbl { font-size: 11px; color: #999; }
-
 .list-section { padding: 0 16px 80px 16px; }
 .list-header { font-size: 16px; font-weight: bold; margin-bottom: 12px; }
 .fund-card-item { background: #fff; border-radius: 12px; margin-bottom: 12px; padding: 20px 16px; display: flex; justify-content: space-between; align-items: center; }
@@ -554,23 +409,10 @@ onMounted(() => { checkLogin(); });
 .val-num, .rate-num { font-weight: bold; font-family: 'Roboto'; }
 .red-text { color: #e74c3c; }
 .green-text { color: #1ba261; }
-
-/* 悬浮按钮 + 呼吸动画 */
 .fab-btn { position: fixed; bottom: 40px; right: 20px; width: 50px; height: 50px; background: #1677ff; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4); z-index: 99; }
-
-.pulse-shadow {
-  animation: pulse-blue 2s infinite;
-}
-
-@keyframes pulse-blue {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.7); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(22, 119, 255, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0); }
-}
-
+.pulse-shadow { animation: pulse-blue 2s infinite; }
+@keyframes pulse-blue { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.7); } 70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(22, 119, 255, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0); } }
 .form-box { padding: 20px 0; }
-
-/* 榜单弹窗样式 */
 .rank-popup-content { padding: 20px 0; height: 100%; display: flex; flex-direction: column; }
 .popup-title { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
 .rank-list-box { flex: 1; overflow-y: auto; padding: 10px 20px; }
@@ -578,11 +420,10 @@ onMounted(() => { checkLogin(); });
 .rank-idx { width: 40px; text-align: center; font-weight: bold; font-style: italic; color: #999; display: flex; justify-content: center; }
 .rank-num { font-size: 18px; font-family: 'Roboto', sans-serif; }
 .rank-user-info { flex: 1; margin-left: 10px; }
-.u-name { font-size: 15px; font-weight: 500; color: #FFF; }
+.u-name-dark { font-size: 15px; font-weight: 500; color: #FFF; }
 .u-mail { font-size: 12px; color: #999; }
 .rank-money { font-size: 16px; font-weight: bold; font-family: 'Roboto', sans-serif; }
 .empty-tip { text-align: center; color: #999; padding: 20px; font-size: 13px; }
-
 @keyframes float { 0%, 100% { transform: translateY(0) rotate(-10deg); } 50% { transform: translateY(-8px) rotate(-10deg); } }
 .pulse-anim { animation: float 3s infinite; }
 </style>

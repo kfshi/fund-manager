@@ -18,18 +18,17 @@ const pool = new Pool({
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 
-// --- 🔥 核心修复：更智能的基金数据抓取函数 ---
+// --- 🔥 核心修复：智能基金数据抓取函数 ---
 async function fetchFundData(code) {
   let fundData = { name: "未知基金", est_val: "0.00", est_rate: "0.00", update_time: "" };
 
   try {
     // 1. 尝试从【天天基金实时接口】获取 (包含估值)
-    // 使用时间戳防止缓存
     const url = `http://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}`;
-    const res = await axios.get(url, { timeout: 3000 }); // 设置3秒超时
+    const res = await axios.get(url, { timeout: 3000 }); 
     const dataStr = res.data;
 
-    // 解析 JSONP 格式: jsonpgz({...});
+    // 解析 JSONP
     if (dataStr && dataStr.indexOf('jsonpgz(') > -1) {
       const jsonStr = dataStr.slice(8, -2);
       const data = JSON.parse(jsonStr);
@@ -47,7 +46,6 @@ async function fetchFundData(code) {
   // 2. 双重保险：如果名字还是“未知基金”，尝试从【备用搜索接口】只抓取名字
   if (fundData.name === "未知基金") {
     try {
-      // 这是一个更全的基金数据库接口
       const searchUrl = `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${code}`;
       const searchRes = await axios.get(searchUrl, { timeout: 3000 });
       
@@ -71,7 +69,7 @@ async function fetchFundData(code) {
 
 // --- API 路由 ---
 
-// 1. 注册
+// 注册
 app.post('/api/register', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -86,7 +84,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// 2. 登录
+// 登录
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -117,30 +115,22 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// 3. 获取持仓列表 (带实时数据)
+// 获取持仓列表
 app.get('/api/holdings', authenticateToken, async (req, res) => {
   try {
-    // 获取数据库里的持仓
     const result = await pool.query('SELECT * FROM holdings WHERE user_id = $1 ORDER BY id DESC', [req.user.id]);
     let holdings = result.rows;
 
-    // 实时去爬取最新行情
     const promises = holdings.map(async (item) => {
       const marketData = await fetchFundData(item.fund_code);
-      
-      // 计算收益
-      // 收益 = (最新估值 - 持仓成本) * 持有份额
       const currentVal = parseFloat(marketData.est_val || 0);
       const costVal = parseFloat(item.avg_cost || 0);
       const profit = (currentVal - costVal) * item.hold_share;
-      
-      // 估算当日收益 = (最新估值 * 估算涨幅%) * 份额 (粗略计算)
-      // 更精确的是: 昨日净值 * 涨幅 * 份额。这里简化处理。
       const dayProfit = (currentVal * (parseFloat(marketData.est_rate)/100)) * item.hold_share;
 
       return {
         ...item,
-        name: marketData.name, // 使用爬取到的最新名字
+        name: marketData.name,
         code: item.fund_code,
         cost: item.avg_cost,
         shares: item.hold_share,
@@ -152,7 +142,7 @@ app.get('/api/holdings', authenticateToken, async (req, res) => {
 
     const data = await Promise.all(promises);
 
-    // 顺便更新一下用户的总收益统计，用于排行榜
+    // 更新用户总收益
     const totalProfit = data.reduce((acc, cur) => acc + parseFloat(cur.profit), 0);
     const totalDayProfit = data.reduce((acc, cur) => acc + parseFloat(cur.day_profit), 0);
     
@@ -161,35 +151,30 @@ app.get('/api/holdings', authenticateToken, async (req, res) => {
 
     res.json({ success: true, data });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: '获取数据失败' });
+    res.status(500).json({ success: false });
   }
 });
 
-// 4. 添加持仓
+// 添加持仓
 app.post('/api/add', authenticateToken, async (req, res) => {
   const { fundCode, cost, shares } = req.body;
   try {
-    // 添加时先去查一下名字
     const marketData = await fetchFundData(fundCode);
-    
     await pool.query(
       'INSERT INTO holdings (user_id, fund_code, fund_name, avg_cost, hold_share) VALUES ($1, $2, $3, $4, $5)',
       [req.user.id, fundCode, marketData.name, cost, shares]
     );
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: '添加失败' });
+    res.status(500).json({ success: false });
   }
 });
 
-// 5. 修改持仓
+// 修改持仓
 app.put('/api/update/:id', authenticateToken, async (req, res) => {
   const { fundCode, cost, shares } = req.body;
   try {
-    // 修改时也更新一下名字（万一之前是未知的）
     const marketData = await fetchFundData(fundCode);
-    
     await pool.query(
       'UPDATE holdings SET fund_code=$1, avg_cost=$2, hold_share=$3, fund_name=$4 WHERE id=$5 AND user_id=$6',
       [fundCode, cost, shares, marketData.name, req.params.id, req.user.id]
@@ -200,7 +185,7 @@ app.put('/api/update/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// 6. 删除持仓
+// 删除持仓
 app.delete('/api/delete/:id', authenticateToken, async (req, res) => {
   try {
     await pool.query('DELETE FROM holdings WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
@@ -210,11 +195,10 @@ app.delete('/api/delete/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// 7. 排行榜接口
+// 排行榜接口
 app.get('/api/leaderboard', async (req, res) => {
-  const type = req.query.type || 'day'; // 'day' or 'total'
+  const type = req.query.type || 'day';
   const field = type === 'day' ? 'day_profit' : 'total_profit';
-  
   try {
     const result = await pool.query(
       `SELECT email, nickname, total_profit, day_profit FROM users ORDER BY ${field} DESC LIMIT 10`
