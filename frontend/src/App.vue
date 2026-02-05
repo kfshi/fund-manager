@@ -323,9 +323,9 @@ onMounted(() => { checkLogin(); });
              
              <div v-else class="rank-user-row" v-for="(user, idx) in rankList" :key="idx">
                <div class="rank-idx">
-                 <van-icon v-if="idx === 0" name="medal" color="#FFD700" size="30" />
-                 <van-icon v-else-if="idx === 1" name="medal" color="#C0C0C0" size="30" />
-                 <van-icon v-else-if="idx === 2" name="medal" color="#B87333" size="30" />
+                 <span v-if="idx === 0" style="font-size: 30px;">🥇</span>
+                 <span v-else-if="idx === 1" style="font-size: 30px;">🥈</span>
+                 <span v-else-if="idx === 2" style="font-size: 30px;">🥉</span>
                  <span v-else class="rank-num">{{ idx + 1 }}</span>
                </div>
                
@@ -440,16 +440,40 @@ onMounted(() => { checkLogin(); });
 .green-text { color: #1ba261; }
 
 /* 悬浮按钮 + 呼吸动画 */
-.fab-btn { position: fixed; bottom: 40px; right: 20px; width: 50px; height: 50px; background: #1677ff; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4); z-index: 99; }
+.fab-btn { 
+  position: fixed; 
+  bottom: 40px; 
+  right: 20px; 
+  width: 50px; 
+  height: 50px; 
+  background: #1677ff; 
+  color: #fff; 
+  border-radius: 50%; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  font-size: 24px; 
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4); 
+  z-index: 99; 
+}
 
 .pulse-shadow {
   animation: pulse-blue 2s infinite;
 }
 
 @keyframes pulse-blue {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(22, 119, 255, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 119, 255, 0); }
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.7);
+  }
+  70% {
+    transform: scale(1.05); /*稍微放大一点，效果更明显*/
+    box-shadow: 0 0 0 10px rgba(22, 119, 255, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(22, 119, 255, 0);
+  }
 }
 
 .form-box { padding: 20px 0; }
