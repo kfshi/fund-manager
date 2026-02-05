@@ -491,7 +491,7 @@ onMounted(() => { checkLogin(); });
 .rank-idx { width: 40px; text-align: center; font-weight: bold; font-style: italic; color: #999; display: flex; justify-content: center; }
 .rank-num { font-size: 18px; font-family: 'Roboto', sans-serif; }
 .rank-user-info { flex: 1; margin-left: 10px; }
-.u-name { font-size: 15px; font-weight: 500; color: #333; }
+.u-name { font-size: 15px; font-weight: 500; color: #FFF; }
 .u-mail { font-size: 12px; color: #999; }
 .rank-money { font-size: 16px; font-weight: bold; font-family: 'Roboto', sans-serif; }
 .empty-tip { text-align: center; color: #999; padding: 20px; font-size: 13px; }
