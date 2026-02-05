@@ -199,7 +199,7 @@ onMounted(() => { checkLogin(); });
           </div>
         </div>
       </div>
-      <div class="login-footer">© 2024 Fund Manager. All Rights Reserved.</div>
+      <div class="login-footer">© 2026 Fund Manager. All Rights Reserved.</div>
     </div>
 
     <div v-else class="main-page">
