@@ -40,7 +40,7 @@ const formatNum = (num) => {
   return n > 0 ? `+${n.toFixed(2)}` : n.toFixed(2);
 };
 
-// --- 认证拦截器 (新增：自动处理 Token 失效) ---
+// --- 认证拦截器 ---
 axios.interceptors.response.use(
   response => response,
   error => {
@@ -108,10 +108,7 @@ const getList = async () => {
       list.value = res.data.data;
       listAnimationKey.value++; 
     }
-  } catch (error) { 
-    // 拦截器会处理 403，这里只需处理网络错误
-    console.error(error);
-  } finally { loading.value = false; }
+  } catch (error) { console.error(error); } finally { loading.value = false; }
 };
 
 const getLeaderboard = async () => {
@@ -199,7 +196,7 @@ onMounted(() => { checkLogin(); });
           </div>
         </div>
       </div>
-      <div class="login-footer">© 2026 Fund Manager. All Rights Reserved.</div>
+      <div class="login-footer">© 2024 Fund Manager. All Rights Reserved.</div>
     </div>
 
     <div v-else class="main-page">
@@ -278,12 +275,22 @@ onMounted(() => { checkLogin(); });
         <div class="list-header">持仓明细</div>
         <div class="fund-list" :key="listAnimationKey">
           <div v-for="(item, index) in list" :key="item.id" class="fund-card-item slide-in-right" :style="{ animationDelay: `${index * 0.1}s` }" @click="onCardClick(item)">
-            <div class="row-left"><div class="fname">{{ item.name }}</div><div class="fcode">{{ item.code }}</div></div>
-            <div class="row-mid"><div class="val-num">{{ item.market ? item.market.est_val : item.cost }}</div><div class="val-label">最新净值</div></div>
+            
+            <div class="row-left">
+              <div class="fname">{{ item.name }}</div>
+              <div class="fcode">{{ item.code }}</div>
+            </div>
+            
+            <div class="row-mid">
+              <div class="val-num">{{ item.market ? item.market.est_val : item.cost }}</div>
+              <div class="val-label">最新净值</div>
+            </div>
+            
             <div class="row-right">
               <div class="rate-num" :class="item.market?.est_rate >= 0 ? 'red-text' : 'green-text'">{{ formatNum(item.market?.est_rate) }}%</div>
               <div class="profit-mini" :class="item.profit >= 0 ? 'red-text' : 'green-text'">{{ showMoney ? formatNum(item.profit) : '****' }}</div>
             </div>
+
           </div>
         </div>
       </div>
@@ -401,12 +408,27 @@ onMounted(() => { checkLogin(); });
 .rank-data-row { display: flex; justify-content: space-between; }
 .r-val { font-size: 18px; font-weight: bold; margin-bottom: 4px; font-family: 'Roboto'; }
 .r-lbl { font-size: 11px; color: #999; }
+
+/* 列表区布局修复 */
 .list-section { padding: 0 16px 80px 16px; }
 .list-header { font-size: 16px; font-weight: bold; margin-bottom: 12px; }
-.fund-card-item { background: #fff; border-radius: 12px; margin-bottom: 12px; padding: 20px 16px; display: flex; justify-content: space-between; align-items: center; }
-.fname { font-weight: 500; font-size: 16px; margin-bottom: 6px; }
-.fcode, .val-label { font-size: 12px; color: #999; }
-.val-num, .rate-num { font-weight: bold; font-family: 'Roboto'; }
+.fund-card-item { background: #fff; border-radius: 12px; margin-bottom: 12px; padding: 20px 16px; display: flex; align-items: center; justify-content: flex-start; }
+
+/* 左边列：占 42%，名字过长显示省略号 */
+.row-left { width: 42%; flex-shrink: 0; margin-right: 2%; overflow: hidden; }
+.fname { font-weight: 500; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fcode { font-size: 12px; color: #999; }
+
+/* 中间列：占 28%，右对齐 */
+.row-mid { width: 28%; flex-shrink: 0; text-align: right; padding-right: 10px; box-sizing: border-box; }
+.val-label { font-size: 12px; color: #999; }
+.val-num { font-weight: bold; font-family: 'Roboto'; }
+
+/* 右边列：占 30%，右对齐 */
+.row-right { width: 30%; flex-shrink: 0; text-align: right; }
+.rate-num { font-weight: bold; font-family: 'Roboto'; margin-bottom: 4px; }
+.profit-mini { font-weight: bold; font-family: 'Roboto'; font-size: 13px; }
+
 .red-text { color: #e74c3c; }
 .green-text { color: #1ba261; }
 .fab-btn { position: fixed; bottom: 40px; right: 20px; width: 50px; height: 50px; background: #1677ff; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4); z-index: 99; }
@@ -420,7 +442,7 @@ onMounted(() => { checkLogin(); });
 .rank-idx { width: 40px; text-align: center; font-weight: bold; font-style: italic; color: #999; display: flex; justify-content: center; }
 .rank-num { font-size: 18px; font-family: 'Roboto', sans-serif; }
 .rank-user-info { flex: 1; margin-left: 10px; }
-.u-name-dark { font-size: 15px; font-weight: 500; color: #FFF; }
+.u-name-dark { font-size: 15px; font-weight: 500; color: #333; }
 .u-mail { font-size: 12px; color: #999; }
 .rank-money { font-size: 16px; font-weight: bold; font-family: 'Roboto', sans-serif; }
 .empty-tip { text-align: center; color: #999; padding: 20px; font-size: 13px; }
