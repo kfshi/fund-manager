@@ -162,12 +162,7 @@ onMounted(() => { checkLogin(); });
           <p class="app-slogan">您的贴身基金管家</p>
         </div>
 
-        <div class="login-card glass-effect">
-          <div class="card-title">
-            {{ authMode === 'login' ? '欢迎回来' : '创建新账号' }}
-          </div>
-          
-          <div class="input-group-new">
+        <div class="input-group-new">
             <van-field 
               v-model="authForm.email" 
               placeholder="请输入邮箱" 
@@ -175,20 +170,22 @@ onMounted(() => { checkLogin(); });
               class="modern-input"
               :border="false"
             />
+            
             <van-field 
               v-model="authForm.password" 
               type="password" 
               placeholder="请输入密码" 
-              left-icon="lock-o" 
+              left-icon="lock-o"
               class="modern-input"
               :border="false"
             />
+            
             <van-field 
               v-if="authMode === 'register'" 
               v-model="authForm.confirmPassword" 
               type="password" 
               placeholder="请确认密码" 
-              left-icon="lock-o" 
+              left-icon="lock-o"
               class="modern-input"
               :border="false"
             />
@@ -212,7 +209,7 @@ onMounted(() => { checkLogin(); });
           </div>
         </div>
       </div>
-      <div class="login-footer">© 2024 Fund Manager. All Rights Reserved.</div>
+      <div class="login-footer">© 2026 Fund Manager. All Rights Reserved.</div>
     </div>
     <div v-else class="main-page">
       
@@ -581,7 +578,7 @@ onMounted(() => { checkLogin(); });
 .rank-idx { width: 40px; text-align: center; font-weight: bold; font-style: italic; color: #999; display: flex; justify-content: center; }
 .rank-num { font-size: 18px; font-family: 'Roboto', sans-serif; }
 .rank-user-info { flex: 1; margin-left: 10px; }
-.u-name { font-size: 15px; font-weight: 500; color: #333; }
+.u-name { font-size: 15px; font-weight: 500; color: #FFF; }
 .u-mail { font-size: 12px; color: #999; }
 .rank-money { font-size: 16px; font-weight: bold; font-family: 'Roboto', sans-serif; }
 .empty-tip { text-align: center; color: #999; padding: 20px; font-size: 13px; }
